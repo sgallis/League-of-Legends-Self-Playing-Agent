@@ -1,10 +1,13 @@
 import argparse
-from pynput.mouse import Controller, Button
+import pynput
 import time
 import random
 import logging
 
-from game.interface import Interface
+import torch
+import lightning as L
+
+from agent.agent_lightning import AgentLightning
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -13,13 +16,17 @@ if __name__ == "__main__":
     args.game_res = (720, 1280)
     args.client_res = (576, 1024)
     args.password = "e2h8nef87*"
-    args.verbose = True
-    args.game_end_time = 100
+    args.verbose = False
+    args.game_end_time = 120
     args.shop_delay = 0.15
     args.device = "cuda"
     args.img_shape=(256, 256)
-    args.action_delay = 0.5
-    args.train_epochs = 3
+    args.action_delay = 0.15
+    args.minions_time = 48
+    args.games_per_epoch = 3
+    args.train_epochs = 10
+    args.lr = 1e-3
+    args.batch_size = 8
 
     logging.basicConfig(
     level=logging.INFO,  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -29,27 +36,18 @@ if __name__ == "__main__":
         logging.StreamHandler()               # Print to console
     ]
     )
+    torch.set_float32_matmul_precision('medium')
+    model = AgentLightning(args)
+    trainer = L.Trainer(
+        accelerator="gpu",
+        max_epochs=args.train_epochs,
+        gradient_clip_val=0.5,
+        log_every_n_steps=1,
+    )
 
-    interface = Interface(args)
-    # interface.game.capture_frame(args.img_shape, save="test.png")
-    interface.collect_trajectory()
+    trainer.fit(model)
+
+    # mouse = pynput.mouse.Controller()
     # while True:
-    #     time.sleep(1)
-    #     # interface.agent.reward.get(interface.game)
-    #     mouse = Controller()
-    #     print(mouse.position)
-    # for i in range(4):
-    #     interface.agent.act(interface.game)
-    # interface.run_custom_game()
-    # interface.test()
-    # interface.test_loop()
-    
-    # new_width = 600
-    # new_height = 500
-    # import cv2
-    # resized_image = cv2.resize(img, (256, 256))
-    # cv2.imwrite("test2.png", resized_image)
-    # while True:
-    #     mouse = Controller()
     #     print(mouse.position)
     #     time.sleep(2)

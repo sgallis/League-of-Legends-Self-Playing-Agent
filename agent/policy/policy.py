@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.distributions import Categorical, Normal
 
-from utils.functions import squash
+from utils.utils import squash
 from agent.policy.net.net import Net
 from ppo.loss import ppo_loss
 
@@ -25,7 +25,7 @@ class Policy(nn.Module):
     @torch.inference_mode()
     def sample_action(self, img):
         # batch size always = 1
-        value, action_logits, action_params = self.net(img)
+        value, action_logits, action_params = self(img)
 
         action_dist = Categorical(logits=action_logits)
         action = action_dist.sample()
@@ -49,10 +49,10 @@ class Policy(nn.Module):
         logp = (logp_action + logp_param).item()
 
         # action as tuple (action, param1, param2, ...)
-        action = np.array((action.item(), ))
+        action = torch.tensor((action.item(), 0.0, 0.0))
         if action_coords is not None:    
-            action_coords = action_coords.detach().cpu().numpy()
-            action = np.array((action[0], *action_coords[0]))
-
-        return value, action, logp
+            action_coords = action_coords.detach().cpu()
+            action = torch.tensor((action[0], *action_coords[0]))
+        # 0.01, tensor([1.0000, 0.3244, 0.7226], dtype=torch.float64), -0.04081709682941437
+        return value.item(), action, logp
     
