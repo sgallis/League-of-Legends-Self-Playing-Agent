@@ -1,0 +1,6 @@
+numpy>=1.26
+opencv-python>=4.12
+pynput>=1.8.1
+mss>=10.1.0
+urllib3>=2.6.2
+requests >=2.32.5
