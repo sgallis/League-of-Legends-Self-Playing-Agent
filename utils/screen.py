@@ -15,6 +15,13 @@ class Frame:
             "width": self.game_res[1],
             "height": self.game_res[0]
         }
+        self.map_length = 210
+        self.map_region = {
+            "left": self.w_offset + self.game_res[1] - self.map_length,
+            "top": self.h_offset + self.game_res[0] - self.map_length,
+            "width": self.map_length,
+            "height": self.map_length
+        }
 
     def _capture(self, region, shape=None, save=""):
         # region["left"] += self.x_offset
@@ -30,6 +37,9 @@ class Frame:
     
     def capture_game_frame(self, shape=None, save=""):
         return self._capture(self.game_region, shape=shape, save=save)
+
+    def capture_minimap(self, shape=None, save=""):
+        return self._capture(self.map_region, shape=shape, save=save)
 
 
 def get_offsets(monitor, game_res):

@@ -99,6 +99,7 @@ class Agent:
 
     def act(self, buffer, reward_model, device, img_shape=(256, 256), train=True):
         img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).permute(2, 0, 1).float()
+        minimap = torch.tensor(self.game.capture_minimap() / 255.0).permute(2, 0, 1).float()
         img_b = img.unsqueeze(0).to(device)
         value, action, logp = self.policy.sample_action(img_b)
         # logging.info(f"{action[0]}, {action[1:]}, {logp}")
@@ -108,11 +109,13 @@ class Agent:
             self._move_click(*action[1:])
         
         if train:
-            reward = reward_model.get_reward()
+            # reward = reward_model.get_reward()
+            game_data = self.game.get_live_game_data()
             buffer.add(
-                img,
+                (img, minimap),
+                game_data,
                 action,
-                reward,
+                0,
                 logp,
                 value
                 )

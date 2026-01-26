@@ -17,7 +17,7 @@ class Interface:
     def start_custom_game(self, blue_side):
         self.client.start_custom_game(
             blue_side=blue_side,
-            champion_name="Master Yi",
+            champion_name="Miss Fortune",
             password=self.args.password,
             verbose=self.args.verbose)
         self.game.wait_game_start(verbose=self.args.verbose)

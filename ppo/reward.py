@@ -1,11 +1,16 @@
+import cv2
+import torch
+import torch.nn.functional as F
+
+
 BRW = [10, 10, 12, 12, 14, 16, 20, 25, 28, 32.5,
        35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5]
 
 class RewardModel:
-    def __init__(self, game, args):
+    def __init__(self, args):
         self.args = args
-        self.game = game
-        
+        img = cv2.imread("assets/MissFortune_map_3.png", cv2.IMREAD_COLOR_RGB)
+        self.template = torch.tensor(img / 255.0).permute(2, 0, 1).float()
         self.clear()
     
     def clear(self):
@@ -14,9 +19,7 @@ class RewardModel:
         self.level = 1
         self.game_info = {}
 
-    def update_from_game_info(self):
-        game_data = self.game.get_live_game_data()
-
+    def update_from_game_info(self, game_data):
         self.game_info["gold"] = game_data["activePlayer"]["currentGold"]
         
         game_data_player = game_data["allPlayers"][0]
@@ -25,8 +28,8 @@ class RewardModel:
         self.game_info["level"] = game_data_player["level"]
         self.game_info["game_time"] = game_data["gameData"]["gameTime"]
 
-    def get_reward(self):
-        self.update_from_game_info()
+    def get_reward(self, game_data):
+        self.update_from_game_info(game_data)
 
         gold_reward = self.get_gold_reward()
         level_reward = self.get_level_reward()
@@ -61,3 +64,19 @@ class RewardModel:
         elif not self.alive and game_alive:
             self.alive = True
         return dead_reward
+    
+    def get_position_reward(self, img):
+        template = self.template.unsqueeze(0)
+        minimap = img.unsqueeze(0)
+        with torch.no_grad():
+            result = F.conv2d(minimap, template)
+            # Flatten + argmax
+            idx = torch.argmax(result)
+
+            W_out = result.shape[-1]
+            y = idx // W_out
+            x = idx % W_out
+        h, w = self.template.shape[-2:]
+        x_c = x + w // 2
+        y_c = y + h // 2
+        return x_c, y_c

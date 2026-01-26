@@ -10,6 +10,7 @@ class RolloutBufferDataset(Dataset):
     def clear(self):
         self.start = 0
         self.obs = []
+        self.game_datas = []
         self.actions = []
         self.logps = []
         self.rewards = []
@@ -18,8 +19,9 @@ class RolloutBufferDataset(Dataset):
         self.advantages = torch.tensor([])
         self.size = 0
 
-    def add(self, obs, action, reward, logp, value):
+    def add(self, obs, game_data, action, reward, logp, value):
         self.obs.append(obs)
+        self.game_datas.append(game_data)
         self.actions.append(action)
         self.rewards.append(reward)
         self.logps.append(logp)
@@ -31,13 +33,23 @@ class RolloutBufferDataset(Dataset):
 
     def __getitem__(self, idx):
         return {
-            "obs": self.obs[idx],
+            "obs": self.obs[idx][0],
             "actions": self.actions[idx],
             "rewards": self.rewards[idx],
             "logps": self.logps[idx],
             "advantages": self.advantages[idx],
             "returns": self.returns[idx],
         }
+
+    def compute_rewards(self, reward_model):
+        reward_model.clear()
+
+        for t in range(self.start, len(self.rewards)):
+            self.rewards[t] += reward_model.get_reward(self.game_datas[t])
+            # clear memory
+            self.game_datas[t] = None
+
+        return sum(self.rewards[self.start:])
 
     def compute_advantages_and_returns(self, gamma=0.99, lam=0.95, normalize=True):
         T = len(self.rewards[self.start:])
@@ -63,5 +75,3 @@ class RolloutBufferDataset(Dataset):
 
         old_start = self.start
         self.start = len(self.rewards)
-
-        return sum(self.rewards[old_start:])

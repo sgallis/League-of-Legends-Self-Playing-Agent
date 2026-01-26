@@ -38,7 +38,7 @@ class AgentLightning(L.LightningModule):
         self.policy = Policy(self.actions, self.actions_specs)
         self.agent = Agent(monitor, self.game, self.policy, args)
         self.buffer = RolloutBufferDataset()
-        self.reward_model = RewardModel(self.game, args)
+        self.reward_model = RewardModel(args)
 
     def forward(self, x):
         return self.policy(x)
@@ -67,7 +67,6 @@ class AgentLightning(L.LightningModule):
         print(f"Finished collecting {self.args.games_per_epoch} rollouts!")
 
     def collect_rollout(self, train=True):
-        self.reward_model.clear()
         # start env and collect trajectory in buffer
         blue_side = random.random()>0.5
         game_start_time = self.interface.start_custom_game(blue_side)
@@ -80,9 +79,10 @@ class AgentLightning(L.LightningModule):
             train=train
             )
         self.interface.end_custom_game()
-
+        # compute rewards
+        rewards = self.buffer.compute_rewards(self.reward_model)
         # compute returns and advantages
-        rewards = self.buffer.compute_advantages_and_returns()
+        self.buffer.compute_advantages_and_returns()
         return rewards
 
     def train_dataloader(self):

@@ -24,6 +24,9 @@ class Game:
     def capture_frame(self, shape=None, save=""):
         return self.frame.capture_game_frame(shape=shape, save=save)
     
+    def capture_minimap(self, shape=None, save=""):
+        return self.frame.capture_minimap(shape=shape, save=save)
+
     def enter_game(self):
         time.sleep(0.5)
         self.game_controller.left_click(0.95, 0.05)
