@@ -28,16 +28,17 @@ class AgentLightning(L.LightningModule):
         monitor = sct.monitors[args.monitor_idx]
 
         self.actions = ["nothing", "move_click"]
+        # self.actions = ["move_click"]
         self.actions_specs = {"move_click": 2}
 
-        client = Client(monitor, client_res=args.client_res)
-        game = Game(sct, monitor, game_res=args.game_res)
-        self.interface = Interface(client, game, args)
+        self.client = Client(monitor, client_res=args.client_res)
+        self.game = Game(sct, monitor, game_res=args.game_res)
+        self.interface = Interface(self.client, self.game, args)
 
         self.policy = Policy(self.actions, self.actions_specs)
-        self.agent = Agent(monitor, game, self.policy, args)
+        self.agent = Agent(monitor, self.game, self.policy, args)
         self.buffer = RolloutBufferDataset()
-        self.reward_model = RewardModel()
+        self.reward_model = RewardModel(self.game, args)
 
     def forward(self, x):
         return self.policy(x)
@@ -49,16 +50,29 @@ class AgentLightning(L.LightningModule):
         if self.current_epoch > 0:
             self.collect_rollouts()
 
+    # def on_train_epoch_end(self):
+    #     self.buffer.clear()
+    #     time.sleep(5)
+    #     self.collect_rollout()
+    #     metric = sum(self.buffer.rewards)
+    #     self.log(
+    #         "val/episode_return",
+    #         metric,
+    #         prog_bar=True,
+    #         sync_dist=True,
+    #     )
+
     def collect_rollouts(self):
         self.buffer.clear()
         print(f"Collecting {self.args.games_per_epoch} rollouts!")
         for i in range(self.args.games_per_epoch):
+            time.sleep(5)
             self.collect_rollout()
             print(f"Finished collecting rollout {i+1}!")
-            time.sleep(3)
         print(f"Finished collecting {self.args.games_per_epoch} rollouts!")
 
     def collect_rollout(self):
+        self.reward_model.clear()
         # start env and collect trajectory in buffer
         blue_side = random.random()>0.5
         self.interface.start_custom_game(blue_side)
@@ -67,7 +81,8 @@ class AgentLightning(L.LightningModule):
         self.interface.end_custom_game()
 
         # compute returns and advantages
-        self.buffer.compute_advantages_and_returns()
+        rewards = self.buffer.compute_advantages_and_returns()
+        print(f"Rollout rewards {rewards}")
 
     def train_dataloader(self):
         return DataLoader(

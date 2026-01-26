@@ -22,7 +22,6 @@ class Policy(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-    @torch.inference_mode()
     def sample_action(self, img):
         # batch size always = 1
         value, action_logits, action_params = self(img)

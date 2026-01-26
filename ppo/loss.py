@@ -13,7 +13,7 @@ def ppo_loss(
     actions_specs,
     clip_eps=0.2,
     vf_coef=1,
-    ent_coef=0.001,
+    ent_coef=0.01,
 ):
     obs = batch["obs"]
     # (action_id, coord1, coord2, ...)

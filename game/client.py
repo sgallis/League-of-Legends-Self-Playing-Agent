@@ -28,14 +28,14 @@ class Client:
     def _select_champion(self, champion_name, verbose=False):
         # click champion search bar
         self.client_controller.raw_left_click(1092, 310)
-        time.sleep(0.5)
+        time.sleep(0.75)
         self.client_controller.type(champion_name)
-        time.sleep(0.5)
+        time.sleep(0.75)
         # click first champion icon
         self.client_controller.raw_left_click(756, 360)
         if verbose:
             logging.info(f"Selected {champion_name}!")
-        time.sleep(0.5)
+        time.sleep(0.75)
         # click lock champion
         self.client_controller.raw_left_click(961, 710)
         if verbose:
@@ -50,26 +50,26 @@ class Client:
             logging.info("Creating a custom game!")
         # click CREATE CUSTOM
         self.client_controller.raw_left_click(758, 307)
-        time.sleep(0.75)
+        time.sleep(1)
         self._add_password(password, verbose=verbose)
-        time.sleep(0.75)
+        time.sleep(1)
         self._click_confirm()
         time.sleep(1.5)
         self._select_custom_role(role=role)
         if verbose:
             logging.info(f"Selected {role}!")
-        time.sleep(0.75)
+        time.sleep(1)
         self._select_custom_side(blue_side=blue_side)
         if verbose:
             logging.info(f"Selected {'blue' if blue_side else 'red'} side!")
-        time.sleep(0.75)
+        time.sleep(1)
         self._click_confirm()
         if verbose:
             logging.info(f"Started custom game!")
 
     def _add_password(self, password, verbose=False):
         self.client_controller.raw_left_click(590, 695)
-        time.sleep(0.5)
+        time.sleep(1)
         self.client_controller.type(password)
         if verbose:
             logging.info(f"Lobby password is '{password}'!")
@@ -79,7 +79,7 @@ class Client:
     
     def _select_custom_role(self, role="mid"):
         self.client_controller.raw_left_click(752, 422)
-        time.sleep(0.5)
+        time.sleep(1)
         if role == "mid":
             self.client_controller.raw_left_click(787, 502)
         else:

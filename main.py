@@ -6,6 +6,7 @@ import logging
 
 import torch
 import lightning as L
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 from agent.agent_lightning import AgentLightning
 
@@ -17,35 +18,51 @@ if __name__ == "__main__":
     args.client_res = (576, 1024)
     args.password = "e2h8nef87*"
     args.verbose = False
-    args.game_end_time = 120
+    args.game_end_time = 165
+    # args.game_end_time = 60
     args.shop_delay = 0.15
     args.device = "cuda"
     args.img_shape=(256, 256)
-    args.action_delay = 0.15
-    args.minions_time = 48
+    args.action_delay = 0
+    args.minions_time = 50
     args.games_per_epoch = 3
-    args.train_epochs = 10
-    args.lr = 1e-3
-    args.batch_size = 8
+    args.train_epochs = 100
+    args.lr = 5e-5
+    args.batch_size = 32
+
+    args.r_gold = 0.1
+    args.r_dead = 0.1
+    args.r_level = 0.05
 
     logging.basicConfig(
     level=logging.INFO,  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler("training.log", mode="w"),  # Save logs to file
+        logging.FileHandler("test/training.log", mode="w"),  # Save logs to file
         logging.StreamHandler()               # Print to console
     ]
     )
     torch.set_float32_matmul_precision('medium')
+    # checkpoint_cb = ModelCheckpoint(
+    #     monitor="val/episode_return",
+    #     mode="max",
+    #     save_top_k=1,
+    #     save_on_train_epoch_end=True
+    # )
+
     model = AgentLightning(args)
     trainer = L.Trainer(
         accelerator="gpu",
         max_epochs=args.train_epochs,
         gradient_clip_val=0.5,
         log_every_n_steps=1,
+        # callbacks=[checkpoint_cb]
     )
 
     trainer.fit(model)
+    # while True:
+    #     print(model.reward_model.get_reward())
+    #     time.sleep(2)
 
     # mouse = pynput.mouse.Controller()
     # while True:

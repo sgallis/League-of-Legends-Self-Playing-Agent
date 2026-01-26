@@ -8,13 +8,14 @@ class RolloutBufferDataset(Dataset):
         self.clear()
         
     def clear(self):
+        self.start = 0
         self.obs = []
         self.actions = []
         self.logps = []
         self.rewards = []
         self.values = []
-        self.returns = None
-        self.advantages = None
+        self.returns = torch.tensor([])
+        self.advantages = torch.tensor([])
         self.size = 0
 
     def add(self, obs, action, reward, logp, value):
@@ -39,7 +40,7 @@ class RolloutBufferDataset(Dataset):
         }
 
     def compute_advantages_and_returns(self, gamma=0.99, lam=0.95, normalize=True):
-        T = len(self.rewards)
+        T = len(self.rewards[self.start:])
         advantages = torch.zeros(T)
         returns = torch.zeros(T)
         gae = 0.0
@@ -47,15 +48,20 @@ class RolloutBufferDataset(Dataset):
 
         for t in reversed(range(T)):
             # GAE
-            delta = self.rewards[t] + gamma * next_value - self.values[t]
+            delta = self.rewards[self.start+t] + gamma * next_value - self.values[self.start+t]
             gae = delta + gamma * lam * gae
             advantages[t] = gae
-            next_value = self.values[t]
+            next_value = self.values[self.start+t]
 
-        returns = advantages + torch.tensor(self.values)
+        returns = advantages + torch.tensor(self.values[self.start:])
 
         if normalize:
             advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        self.advantages = advantages
-        self.returns = returns
+        self.advantages = torch.cat((self.advantages, advantages))
+        self.returns = torch.cat((self.returns, returns))
+
+        old_start = self.start
+        self.start = len(self.rewards)
+
+        return sum(self.rewards[old_start:])

@@ -51,8 +51,11 @@ class Game:
         time.sleep(13)
         self.load_flag = False
         self.start_flag = True
+        t = time.time()
         while not self.game_started(verbose=verbose):
-            continue
+            if time.time() - t > 120:
+                logging.info("Failed to start game")
+                exit()
         if verbose:
             logging.info("Game has started!")
 
@@ -65,13 +68,19 @@ class Game:
         except:
             raise NotImplementedError
 
+    def get_player_is_alive(self):
+        return not self.get_live_game_data()["allPlayers"][0]["isDead"]
+
+    def get_player_level(self):
+        return self.get_live_game_data(endpoint="activeplayer")["level"]
+
     def get_player_gold(self):
-        return float(self._get_live_game_data(endpoint="activeplayer")["currentGold"])
+        return float(self.get_live_game_data(endpoint="activeplayer")["currentGold"])
     
     def get_game_time(self, verbose=False):
-        return self._get_live_game_data(endpoint="gamestats", verbose=verbose)["gameTime"]
+        return self.get_live_game_data(endpoint="gamestats", verbose=verbose)["gameTime"]
 
-    def _get_live_game_data(self, endpoint="allgamedata", verbose=False):
+    def get_live_game_data(self, endpoint="allgamedata", verbose=False):
         url = self.base_url + endpoint
         try:
             # We replace verify=False with the path to the cert

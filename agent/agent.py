@@ -78,16 +78,18 @@ class Agent:
         time.sleep(t)
 
     def predefined_start(self):
+        self.wait(t=1)
         self.buy_item("Doran's Blade", shop_delay=self.args.shop_delay)
-        self.wait(t=15)
+        self.wait(t=14)
         self.go_mid()
         while self.game.get_game_time() < self.args.minions_time:
             continue
 
     def collect_trajectory(self, buffer, reward_model, device):
         with inference_mode(self.policy):
-            while self.game.get_game_time() < self.args.game_end_time:
-                self.act(
+            game_time = 0
+            while game_time < self.args.game_end_time:
+                game_time = self.act(
                     buffer,
                     reward_model,
                     device, 
@@ -99,15 +101,13 @@ class Agent:
     def act(self, buffer, reward_model, device, img_shape=(256, 256), train=True):
         img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).permute(2, 0, 1).float()
         img_b = img.unsqueeze(0).to(device)
-        with torch.no_grad():
-            value, action, logp = self.policy.sample_action(img_b)
+        value, action, logp = self.policy.sample_action(img_b)
         # logging.info(f"{action[0]}, {action[1:]}, {logp}")
-
+        
         # execute action
         if action[0]:
             self._move_click(*action[1:])
-
-        reward = reward_model.get_reward(self.game)
+        reward = reward_model.get_reward()
         
         if train:
             buffer.add(
@@ -117,6 +117,7 @@ class Agent:
                 logp,
                 value
                 )
+        return reward_model.game_info["game_time"]
 
     def random_action(self, img=None):
         self._move_click(random.random(), random.random())
