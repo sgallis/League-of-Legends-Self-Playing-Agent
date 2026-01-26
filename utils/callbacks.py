@@ -1,6 +1,7 @@
 import lightning as L
+from lightning.pytorch.callbacks import Callback
 
-class RolloutValidationCallback(L.Callback):
+class RolloutValidationCallback(Callback):
     def __init__(self, every_n_epochs=2):
         self.every_n_epochs = every_n_epochs
 
@@ -10,11 +11,9 @@ class RolloutValidationCallback(L.Callback):
         if (epoch + 1) % self.every_n_epochs != 0:
             return
 
-        metric = l_module.run_validation_rollout()
-
-        l_module.log(
-            "val/episode_return",
-            metric,
-            prog_bar=True,
-            sync_dist=True,
+        rewards = l_module.run_validation_rollout()
+        self.log(
+            "val_episode_return",
+            float(rewards),
+            prog_bar=True
         )

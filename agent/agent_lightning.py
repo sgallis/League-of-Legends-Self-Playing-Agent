@@ -50,39 +50,40 @@ class AgentLightning(L.LightningModule):
         if self.current_epoch > 0:
             self.collect_rollouts()
 
-    # def on_train_epoch_end(self):
-    #     self.buffer.clear()
-    #     time.sleep(5)
-    #     self.collect_rollout()
-    #     metric = sum(self.buffer.rewards)
-    #     self.log(
-    #         "val/episode_return",
-    #         metric,
-    #         prog_bar=True,
-    #         sync_dist=True,
-    #     )
+    def run_validation_rollout(self):
+        self.buffer.clear()
+        time.sleep(5)
+        rewards = self.collect_rollout(train=True)
+        print(f"Validation rollout rewards: {rewards}")
+        return rewards
 
     def collect_rollouts(self):
         self.buffer.clear()
         print(f"Collecting {self.args.games_per_epoch} rollouts!")
         for i in range(self.args.games_per_epoch):
             time.sleep(5)
-            self.collect_rollout()
-            print(f"Finished collecting rollout {i+1}!")
+            rewards = self.collect_rollout()
+            print(f"Rollout {i+1} rewards: {rewards}")
         print(f"Finished collecting {self.args.games_per_epoch} rollouts!")
 
-    def collect_rollout(self):
+    def collect_rollout(self, train=True):
         self.reward_model.clear()
         # start env and collect trajectory in buffer
         blue_side = random.random()>0.5
-        self.interface.start_custom_game(blue_side)
-        self.agent.predefined_start()
-        self.agent.collect_trajectory(self.buffer, self.reward_model, self.device)
+        game_start_time = self.interface.start_custom_game(blue_side)
+        self.agent.predefined_start(game_start_time)
+        self.agent.collect_trajectory(
+            game_start_time,
+            self.buffer,
+            self.reward_model,
+            self.device,
+            train=train
+            )
         self.interface.end_custom_game()
 
         # compute returns and advantages
         rewards = self.buffer.compute_advantages_and_returns()
-        print(f"Rollout rewards {rewards}")
+        return rewards
 
     def train_dataloader(self):
         return DataLoader(

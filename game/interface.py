@@ -21,7 +21,9 @@ class Interface:
             password=self.args.password,
             verbose=self.args.verbose)
         self.game.wait_game_start(verbose=self.args.verbose)
+        game_start_time = time.time()
         self.game.enter_game()
+        return game_start_time
     
     def end_custom_game(self):
         self.game.leave_game(verbose=self.args.verbose)

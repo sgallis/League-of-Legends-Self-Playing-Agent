@@ -6,9 +6,10 @@ import logging
 
 import torch
 import lightning as L
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 from agent.agent_lightning import AgentLightning
+from utils.callbacks import RolloutValidationCallback
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -18,13 +19,13 @@ if __name__ == "__main__":
     args.client_res = (576, 1024)
     args.password = "e2h8nef87*"
     args.verbose = False
-    args.game_end_time = 165
-    # args.game_end_time = 60
     args.shop_delay = 0.15
     args.device = "cuda"
     args.img_shape=(256, 256)
     args.action_delay = 0
     args.minions_time = 50
+    # args.game_end_time = 80
+    args.game_end_time = 165
     args.games_per_epoch = 3
     args.train_epochs = 100
     args.lr = 5e-5
@@ -43,12 +44,13 @@ if __name__ == "__main__":
     ]
     )
     torch.set_float32_matmul_precision('medium')
-    # checkpoint_cb = ModelCheckpoint(
-    #     monitor="val/episode_return",
-    #     mode="max",
-    #     save_top_k=1,
-    #     save_on_train_epoch_end=True
-    # )
+    checkpoint_cb = ModelCheckpoint(
+        monitor="val_episode_return",
+        mode="max",
+        save_top_k=1,
+        save_last=True,
+        filename="best-{epoch:03d}-{val_episode_return:.2f}"
+    )
 
     model = AgentLightning(args)
     trainer = L.Trainer(
@@ -56,7 +58,7 @@ if __name__ == "__main__":
         max_epochs=args.train_epochs,
         gradient_clip_val=0.5,
         log_every_n_steps=1,
-        # callbacks=[checkpoint_cb]
+        callbacks=[checkpoint_cb, RolloutValidationCallback(every_n_epochs=1)]
     )
 
     trainer.fit(model)

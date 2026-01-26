@@ -77,24 +77,23 @@ class Agent:
     def wait(self, t):
         time.sleep(t)
 
-    def predefined_start(self):
+    def predefined_start(self, game_start_time):
         self.wait(t=1)
         self.buy_item("Doran's Blade", shop_delay=self.args.shop_delay)
         self.wait(t=14)
         self.go_mid()
-        while self.game.get_game_time() < self.args.minions_time:
+        while time.time() - game_start_time < self.args.minions_time:
             continue
 
-    def collect_trajectory(self, buffer, reward_model, device):
+    def collect_trajectory(self, game_start_time, buffer, reward_model, device, train=True):
         with inference_mode(self.policy):
-            game_time = 0
-            while game_time < self.args.game_end_time:
-                game_time = self.act(
+            while time.time() - game_start_time < self.args.game_end_time:
+                self.act(
                     buffer,
                     reward_model,
                     device, 
                     img_shape=self.args.img_shape,
-                    train=True
+                    train=train
                     )
                 time.sleep(self.args.action_delay)
 
@@ -107,9 +106,9 @@ class Agent:
         # execute action
         if action[0]:
             self._move_click(*action[1:])
-        reward = reward_model.get_reward()
         
         if train:
+            reward = reward_model.get_reward()
             buffer.add(
                 img,
                 action,
@@ -117,7 +116,6 @@ class Agent:
                 logp,
                 value
                 )
-        return reward_model.game_info["game_time"]
 
     def random_action(self, img=None):
         self._move_click(random.random(), random.random())
