@@ -33,6 +33,7 @@ if __name__ == "__main__":
     args.batch_size = 32
     
     args.template_threshold = 0.6
+    args.template_path = "assets/MissFortune_map.png"
     args.r_gold = 0.01
     args.r_dead = 0.01
     args.r_level = 0.05

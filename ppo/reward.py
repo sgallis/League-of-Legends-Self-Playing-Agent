@@ -1,23 +1,15 @@
 import cv2
 import numpy as np
-import torch
-import torch.nn.functional as F
 
+from utils.template import read_template, template_matching
+from utils.variables import BRW, mid_box
 
-BRW = [10, 10, 12, 12, 14, 16, 20, 25, 28, 32.5,
-       35, 37.5, 40, 42.5, 45, 47.5, 50, 52.5]
-mid_box = np.array([
-        [94, 140],
-        [69, 113],
-        [118, 67],
-        [143, 93]
-    ], dtype=np.float32)
 
 class RewardModel:
     def __init__(self, args):
         self.args = args
-        self.template = cv2.imread("assets/MissFortune_map.png", 0)
-        self.t_w, self.t_h = self.template.shape[::-1]
+
+        self.template, self.t_w, self.t_h = read_template(args.template_path)
         self.threshold = args.template_threshold
         self.clear()
     
@@ -75,18 +67,18 @@ class RewardModel:
             self.alive = True
         return self.args.r_dead * dead_reward
     
-    def get_position_reward(self, img):
-        minimap = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        res = cv2.matchTemplate(minimap, self.template, cv2.TM_CCOEFF_NORMED)
-        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-        inside = False
-        if max_val >= self.threshold:
-            top_left = max_loc  # (x, y)
-            x_c, y_c = (top_left[0] + self.t_w//2, top_left[1] + self.t_h//2)
-            inside = cv2.pointPolygonTest(mid_box, (x_c, y_c), False) >= 0
+    def get_position_reward(self, minimap):
+        above, inside, x_c, y_c = template_matching(
+            minimap,
+            self.template,
+            (self.t_w, self.t_h),
+            mid_box,
+            threshold=self.threshold
+            )
+
         pos_r = 0
         time_diff = self.game_info["game_time"] - self.game_time
-        pos_r = self.args.r_pos * time_diff * int(inside)
+        pos_r = self.args.r_pos * time_diff * int(inside) * int(above)
         self.game_time = self.game_info["game_time"]
         return pos_r
     
