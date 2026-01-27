@@ -28,3 +28,21 @@ def view_template_matching(game, template_path):
             )
         cv2.imshow("minimap", minimap_rgb)
         cv2.waitKey(1)
+
+def draw_grid(img, n_h=5, n_v=10, color=(255,255,255), thickness=1, show=False, save=""):
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    H, W = img.shape[:2]
+
+    # Horizontal lines
+    for i in range(1, n_h + 1):
+        y = int(i * H / (n_h + 1))
+        cv2.line(img, (0, y), (W, y), color, thickness)
+
+    # Vertical lines
+    for j in range(1, n_v + 1):
+        x = int(j * W / (n_v + 1))
+        cv2.line(img, (x, 0), (x, H), color, thickness)
+    if show:
+        cv2.imshow("grid", img)
+    if save:
+        cv2.imwrite(save, img)

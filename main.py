@@ -5,6 +5,7 @@ import random
 import logging
 
 import torch
+from torchvision.models import resnet18, ResNet18_Weights
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint
 
@@ -22,7 +23,7 @@ if __name__ == "__main__":
     args.verbose = False
     args.shop_delay = 0.15
     args.device = "cuda"
-    args.img_shape=(256, 256)
+    args.img_shape=(224, 224)
     args.action_delay = 0
     args.minions_time = 50
     # args.game_end_time = 80
@@ -56,7 +57,8 @@ if __name__ == "__main__":
         filename="best-{epoch:03d}-{val_episode_return:.2f}"
     )
 
-    model = AgentLightning(args)
+    backbone = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+    model = AgentLightning(backbone, args)
     
     if args.train:
         trainer = L.Trainer(
@@ -82,8 +84,10 @@ if __name__ == "__main__":
                 RolloutTestCallback(n_episodes=1, compute_rewards=True)],
             logger=False
         )
-        trainer.test(model,
-                     ckpt_path="lightning_logs/version_18/checkpoints/best-epoch=004-val_episode_return=0.05.ckpt")
+        trainer.test(
+            model,
+            # ckpt_path="lightning_logs/version_18/checkpoints/best-epoch=004-val_episode_return=0.05.ckpt",
+            )
 
     # mouse = pynput.mouse.Controller()
     # while True:

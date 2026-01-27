@@ -99,6 +99,11 @@ class Agent:
     def act(self, buffer, device, img_shape=(256, 256), train=True):
         # grayscale array to tensor (h, w) -> (3, h, w)
         img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).float().unsqueeze(0).repeat(3, 1, 1)
+        # ImageNet normalization
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+        std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+        img = (img - mean) / std
+        
         minimap = self.game.capture_minimap()
         img_b = img.unsqueeze(0).to(device) # add batch dimension (3, h, w) -> (1, 3, h, w)
         value, action, logp = self.policy.sample_action(img_b)

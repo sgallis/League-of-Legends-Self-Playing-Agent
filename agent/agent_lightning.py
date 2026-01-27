@@ -20,7 +20,7 @@ from ppo.buffer import RolloutBufferDataset
 from ppo.reward import RewardModel
 
 class AgentLightning(L.LightningModule):
-    def __init__(self, args):
+    def __init__(self, backbone, args):
         super(AgentLightning, self).__init__()
         self.args = args
         
@@ -35,7 +35,7 @@ class AgentLightning(L.LightningModule):
         self.game = Game(sct, monitor, game_res=args.game_res)
         self.interface = Interface(self.client, self.game, args)
 
-        self.policy = Policy(self.actions, self.actions_specs)
+        self.policy = Policy(self.actions, self.actions_specs, backbone)
         self.agent = Agent(monitor, self.game, self.policy, args)
         self.buffer = RolloutBufferDataset()
         self.reward_model = RewardModel(args)
