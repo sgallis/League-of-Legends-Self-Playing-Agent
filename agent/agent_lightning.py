@@ -74,7 +74,6 @@ class AgentLightning(L.LightningModule):
         self.agent.collect_trajectory(
             game_start_time,
             self.buffer,
-            self.reward_model,
             self.device,
             train=train
             )

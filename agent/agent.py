@@ -85,22 +85,22 @@ class Agent:
         while time.time() - game_start_time < 15:
             continue
 
-    def collect_trajectory(self, game_start_time, buffer, reward_model, device, train=True):
+    def collect_trajectory(self, game_start_time, buffer, device, train=True):
         with inference_mode(self.policy):
             while time.time() - game_start_time < self.args.game_end_time:
                 self.act(
                     buffer,
-                    reward_model,
                     device, 
                     img_shape=self.args.img_shape,
                     train=train
                     )
                 time.sleep(self.args.action_delay)
 
-    def act(self, buffer, reward_model, device, img_shape=(256, 256), train=True):
-        img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).permute(2, 0, 1).float()
+    def act(self, buffer, device, img_shape=(256, 256), train=True):
+        # grayscale array to tensor (h, w) -> (3, h, w)
+        img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).float().unsqueeze(0).repeat(3, 1, 1)
         minimap = self.game.capture_minimap()
-        img_b = img.unsqueeze(0).to(device)
+        img_b = img.unsqueeze(0).to(device) # add batch dimension (3, h, w) -> (1, 3, h, w)
         value, action, logp = self.policy.sample_action(img_b)
         # logging.info(f"{action[0]}, {action[1:]}, {logp}")
         
