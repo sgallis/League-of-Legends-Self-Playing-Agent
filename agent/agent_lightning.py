@@ -50,10 +50,10 @@ class AgentLightning(L.LightningModule):
         if self.current_epoch > 0:
             self.collect_rollouts()
 
-    def run_validation_rollout(self):
+    def run_validation_rollout(self, train=True):
         self.buffer.clear()
         time.sleep(5)
-        rewards = self.collect_rollout(train=True)
+        rewards = self.collect_rollout(train=train)
         print(f"Validation rollout rewards: {rewards}")
         return rewards
 
@@ -79,11 +79,12 @@ class AgentLightning(L.LightningModule):
             train=train
             )
         self.interface.end_custom_game()
-        # compute rewards
-        rewards = self.buffer.compute_rewards(self.reward_model)
-        # compute returns and advantages
-        self.buffer.compute_advantages_and_returns()
-        return rewards
+        if train:
+            # compute rewards
+            rewards = self.buffer.compute_rewards(self.reward_model)
+            # compute returns and advantages
+            self.buffer.compute_advantages_and_returns()
+            return rewards
 
     def train_dataloader(self):
         return DataLoader(
@@ -108,6 +109,12 @@ class AgentLightning(L.LightningModule):
         prog_bar=True
         )
         return loss
+    
+    def test_dataloader(self):
+        return DataLoader([0])  # dummy single batch
+
+    def test_step(self, batch, batch_idx):
+        pass
     
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.args.lr)

@@ -33,7 +33,7 @@ class RolloutBufferDataset(Dataset):
 
     def __getitem__(self, idx):
         return {
-            "obs": self.obs[idx][0],
+            "obs": self.obs[idx][0], # game frame
             "actions": self.actions[idx],
             "rewards": self.rewards[idx],
             "logps": self.logps[idx],
@@ -45,7 +45,10 @@ class RolloutBufferDataset(Dataset):
         reward_model.clear()
 
         for t in range(self.start, len(self.rewards)):
-            self.rewards[t] += reward_model.get_reward(self.game_datas[t])
+            self.rewards[t] += reward_model.get_reward(
+                self.game_datas[t],
+                self.obs[t][1], # minimap
+                )
             # clear memory
             self.game_datas[t] = None
 
