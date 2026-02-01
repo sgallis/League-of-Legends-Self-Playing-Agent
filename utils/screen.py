@@ -28,7 +28,7 @@ class Frame:
         # region["top"] += self.y_offset
         img = np.array(self.sct.grab(region))
         # .COLOR_2RGB
-        img = cv2.cvtColor(img, cv2.COLOR_RGBA2GRAY)
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
         if shape:
             img = cv2.resize(img, shape)
         if save:

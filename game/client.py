@@ -17,9 +17,9 @@ class Client:
                           password="",
                           verbose=False):
         self._click_play()
-        time.sleep(1.25)
+        time.sleep(1)
         self._create_custom_game(blue_side, role, password, verbose=verbose)
-        time.sleep(1.25)
+        time.sleep(1)
         self._select_champion(champion_name=champion_name, verbose=verbose)
     
     def _click_play(self):
@@ -28,14 +28,14 @@ class Client:
     def _select_champion(self, champion_name, verbose=False):
         # click champion search bar
         self.client_controller.raw_left_click(1092, 310)
-        time.sleep(1.25)
+        time.sleep(1)
         self.client_controller.type(champion_name)
-        time.sleep(1.25)
+        time.sleep(1)
         # click first champion icon
         self.client_controller.raw_left_click(756, 360)
         if verbose:
             logging.info(f"Selected {champion_name}!")
-        time.sleep(1.25)
+        time.sleep(1)
         # click lock champion
         self.client_controller.raw_left_click(961, 710)
         if verbose:

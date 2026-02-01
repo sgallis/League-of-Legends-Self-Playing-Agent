@@ -19,11 +19,15 @@ class RolloutValidationCallback(Callback):
         )
 
 class RolloutTestCallback(Callback):
-    def __init__(self, n_episodes=2, compute_rewards=False):
+    def __init__(self, n_episodes=2, compute_rewards=False, sample=True):
         self.n_episodes = n_episodes
         self.compute_rewards = compute_rewards
+        self.sample = sample
     
     def on_test_epoch_start(self, trainer, l_module):
         for i in range(self.n_episodes):
-            rewards = l_module.run_validation_rollout(train=self.compute_rewards)
+            rewards = l_module.run_validation_rollout(
+                train=self.compute_rewards,
+                sample=self.sample
+            )
             print(f"Episode {i+1} rewards: {float(rewards):.2f}.")     

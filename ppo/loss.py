@@ -55,3 +55,38 @@ def ppo_loss(
     loss = actor_loss + vf_coef * value_loss - ent_coef * entropy
 
     return loss, actor_loss, value_loss, entropy, returns
+
+def discrete_ppo_loss(
+    model,
+    batch,
+    clip_eps=0.2,
+    vf_coef=1,
+    ent_coef=0.01,
+):
+    obs = batch["obs"]
+    # [[action_id, mouse_id], ...]
+    actions = batch["actions"]
+    cat_actions = actions[:, 0]
+    cat_mouse = actions[:, 1]
+    old_logps = batch["logps"]
+    advantages = batch["advantages"]
+    returns = batch["returns"]
+
+    values, actions_logits, mouse_logits = model(obs)
+
+    actions_dist = Categorical(logits=actions_logits)
+    action_logps = actions_dist.log_prob(cat_actions)
+    mouse_dist = Categorical(logits=mouse_logits)
+    mouse_logps = mouse_dist.log_prob(cat_mouse)
+
+    new_logps = action_logps + mouse_logps
+    ratio = torch.exp(new_logps - old_logps)
+    clipped = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps)
+
+    actor_loss = -torch.min(ratio*advantages, clipped*advantages).mean()
+    value_loss = F.mse_loss(values, returns)
+    entropy = (actions_dist.entropy() + mouse_dist.entropy()).mean()
+
+    loss = actor_loss + vf_coef * value_loss - ent_coef * entropy
+
+    return loss, actor_loss, value_loss, entropy, returns

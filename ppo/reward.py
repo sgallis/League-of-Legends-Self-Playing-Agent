@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 from utils.template import read_template, template_matching
-from utils.variables import BRW, mid_box
+from utils.variables import BRW, mid_box, big_box
 
 
 class RewardModel:
@@ -17,7 +17,7 @@ class RewardModel:
         self.gold = 500
         self.alive = True
         self.level = 1
-        self.game_time = 0
+        self.game_time = 15
         self.game_info = {}
 
     def update_from_game_info(self, game_data):
@@ -50,12 +50,13 @@ class RewardModel:
         return self.args.r_gold * gold_reward
 
     def get_level_reward(self):
+        # true gold value per level ~580
         level_reward = 0
         game_level = self.game_info["level"]
         if game_level > self.level:
             level_reward = game_level - self.level
             self.level = game_level
-        return self.args.r_level * level_reward
+        return self.args.r_level * 50 * level_reward
 
     def get_dead_reward(self):
         dead_reward = 0
@@ -68,17 +69,20 @@ class RewardModel:
         return self.args.r_dead * dead_reward
     
     def get_position_reward(self, minimap):
-        above, inside, x_c, y_c = template_matching(
+        above, inside, inside_big, x_c, y_c = template_matching(
             minimap,
             self.template,
             (self.t_w, self.t_h),
             mid_box,
+            big_box,
             threshold=self.threshold
             )
 
         pos_r = 0
         time_diff = self.game_info["game_time"] - self.game_time
-        pos_r = self.args.r_pos * time_diff * int(inside) * int(above)
+        # sign = 1 if inside else -1
+        sign = 0 if inside else (-1/2 if inside_big else -1)
+        pos_r = self.args.r_pos * time_diff * sign
         self.game_time = self.game_info["game_time"]
         return pos_r
     

@@ -22,22 +22,24 @@ if __name__ == "__main__":
     args.password = "e2h8nef87*"
     args.verbose = False
     args.shop_delay = 0.15
-    args.device = "cuda"
+    # args.device = "cuda"
     args.img_shape=(224, 224)
     args.action_delay = 0
     args.minions_time = 50
-    # args.game_end_time = 80
-    args.game_end_time = 165
-    args.games_per_epoch = 3
+    # args.game_end_time = 30
+    args.game_end_time = 300
+    args.games_per_epoch = 8
     args.train_epochs = 100
-    args.lr = 5e-5
-    args.batch_size = 32
+    args.lr = 3e-4
+    args.batch_size = 256
     
+    args.m_pos = (20, 35)
+
     args.template_threshold = 0.6
     args.template_path = "assets/MissFortune_map.png"
     args.r_gold = 0.01
     args.r_dead = 0.01
-    args.r_level = 0.05
+    args.r_level = 0.01
     args.r_pos = 0.01
 
     logging.basicConfig(
@@ -50,16 +52,16 @@ if __name__ == "__main__":
     )
     torch.set_float32_matmul_precision('medium')
     checkpoint_cb = ModelCheckpoint(
-        monitor="val_episode_return",
+        monitor="episode_return",
         mode="max",
-        save_top_k=1,
+        save_top_k=5,
         save_last=True,
-        filename="best-{epoch:03d}-{val_episode_return:.2f}"
+        filename="best-{epoch:03d}-{episode_return:.2f}"
     )
 
     backbone = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
     model = AgentLightning(backbone, args)
-    
+
     if args.train:
         trainer = L.Trainer(
             accelerator="gpu",
@@ -68,10 +70,13 @@ if __name__ == "__main__":
             log_every_n_steps=1,
             callbacks=[
                 checkpoint_cb,
-                RolloutValidationCallback(every_n_epochs=5),
+                # RolloutValidationCallback(every_n_epochs=5),
                 RolloutTestCallback(n_episodes=1, compute_rewards=True)]
         )
-        trainer.fit(model)
+        trainer.fit(
+            model,
+            # ckpt_path="last"
+        )
     else:
         trainer = L.Trainer(
             accelerator="gpu",
@@ -81,12 +86,16 @@ if __name__ == "__main__":
             callbacks=[
                 checkpoint_cb,
                 RolloutValidationCallback(every_n_epochs=1),
-                RolloutTestCallback(n_episodes=1, compute_rewards=True)],
+                RolloutTestCallback(
+                    n_episodes=1,
+                    compute_rewards=True,
+                    sample=False,
+                    )],
             logger=False
         )
         trainer.test(
             model,
-            # ckpt_path="lightning_logs/version_18/checkpoints/best-epoch=004-val_episode_return=0.05.ckpt",
+            ckpt_path="lightning_logs/version_14/checkpoints/best-epoch=032-episode_return=-1.25.ckpt",
             )
 
     # mouse = pynput.mouse.Controller()

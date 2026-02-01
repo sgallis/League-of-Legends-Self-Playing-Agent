@@ -31,12 +31,15 @@ class Controller:
         return (int(self.w_offset + x * self.game_res[1]), int(self.h_offset + y * self.game_res[0]))
     
     def left_click(self, x, y, delay=0, count=1):
-        self.mouse.position = self.compute_mouse_position(x, y)
+        self.mouse_to(x, y)
         time.sleep(delay)
         self.mouse.click(Button.left, count=count)
     
+    def only_right_click(self):
+        self.mouse.click(Button.right)
+
     def right_click(self, x, y, delay=0):
-        self.mouse.position = self.compute_mouse_position(x, y)
+        self.mouse_to(x, y)
         time.sleep(delay)
         self.mouse.click(Button.right)
     
@@ -44,6 +47,9 @@ class Controller:
         self.mouse.position = (x + self.raw_w_offset, y + self.raw_h_offset)
         self.mouse.click(Button.left)
     
+    def mouse_to(self, x, y):
+        self.mouse.position = self.compute_mouse_position(x, y)
+
     def type(self, string):
         self.keyboard.type(string)
     

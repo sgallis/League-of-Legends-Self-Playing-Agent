@@ -48,4 +48,37 @@ class PolicyNet(nn.Module):
                 action_params[a] = (mean, std)
 
         return value.squeeze(-1), action_logits, action_params
+
+class DiscretePolicyNet(nn.Module):
+    def __init__(self, actions, n_m_pos, in_features, hidden_dim=256):
+        """
+        action_specs: dict
+            key: action index
+            value: number of continuous parameters
+        Example:
+            {
+                0: 0,  # do nothing
+                1: 2,  # move (x, y)
+                2: 1,  # rotate (theta)
+            }
+        """
+        super(DiscretePolicyNet, self).__init__()
+        self.num_actions = len(actions)
+        self.n_m_pos = n_m_pos
+
+        self.value_fc = nn.Linear(in_features, hidden_dim)
+        self.value_head = nn.Linear(hidden_dim, 1)
+        
+        self.action_fc = nn.Linear(in_features, hidden_dim)
+        self.action_head = nn.Linear(hidden_dim, self.num_actions)
+        self.mouse_head = nn.Linear(hidden_dim, n_m_pos)
+    
+    def forward(self, z):
+        value = self.value_head(F.relu(self.value_fc(z)))
+
+        z_a = F.relu(self.action_fc(z))
+        action_logits = self.action_head(z_a)
+        mouse_logits = self.mouse_head(z_a)
+
+        return value.squeeze(-1), action_logits, mouse_logits
     

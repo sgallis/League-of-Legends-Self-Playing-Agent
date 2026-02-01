@@ -18,3 +18,9 @@ def squash(raw):
 def unsquash(x, eps=1e-6):
     x = torch.clamp(x, eps, 1 - eps)
     return torch.atanh(2 * x - 1)
+
+def mouse_id_to_grid_id(m_id, m_pos):
+    divide = m_pos[1]
+    grid_x = m_id % m_pos[1] 
+    grid_y = m_id // m_pos[1]
+    return grid_x, grid_y

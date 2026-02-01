@@ -12,10 +12,10 @@ from game.game import Game
 from game.client import Client
 
 from agent.agent import Agent
-from agent.policy.policy import Policy
+from agent.policy.policy import Policy, DiscretePolicy
 from game.interface import Interface
 
-from ppo.loss import ppo_loss
+from ppo.loss import ppo_loss, discrete_ppo_loss
 from ppo.buffer import RolloutBufferDataset
 from ppo.reward import RewardModel
 
@@ -30,12 +30,15 @@ class AgentLightning(L.LightningModule):
         self.actions = ["nothing", "move_click"]
         # self.actions = ["move_click"]
         self.actions_specs = {"move_click": 2}
+        self.m_pos = args.m_pos
+        self.n_m_pos = self.m_pos[0] * self.m_pos[1]
 
         self.client = Client(monitor, client_res=args.client_res)
         self.game = Game(sct, monitor, game_res=args.game_res)
         self.interface = Interface(self.client, self.game, args)
 
-        self.policy = Policy(self.actions, self.actions_specs, backbone)
+        self.policy = DiscretePolicy(self.actions, self.n_m_pos, backbone)
+        self.policy.train()
         self.agent = Agent(monitor, self.game, self.policy, args)
         self.buffer = RolloutBufferDataset()
         self.reward_model = RewardModel(args)
@@ -50,32 +53,38 @@ class AgentLightning(L.LightningModule):
         if self.current_epoch > 0:
             self.collect_rollouts()
 
-    def run_validation_rollout(self, train=True):
+    def run_validation_rollout(self, train=True, sample=True):
         self.buffer.clear()
         time.sleep(5)
-        rewards = self.collect_rollout(train=train)
-        print(f"Validation rollout rewards: {rewards}")
+        rewards = self.collect_rollout(train=train, sample=sample)
+        logging.info(f"Validation rollout rewards: {rewards}")
         return rewards
 
     def collect_rollouts(self):
-        self.buffer.clear()
-        print(f"Collecting {self.args.games_per_epoch} rollouts!")
-        for i in range(self.args.games_per_epoch):
-            time.sleep(5)
-            rewards = self.collect_rollout()
-            print(f"Rollout {i+1} rewards: {rewards}")
-        print(f"Finished collecting {self.args.games_per_epoch} rollouts!")
+        r_list = []
 
-    def collect_rollout(self, train=True):
+        self.buffer.clear()
+        logging.info(f"Collecting {self.args.games_per_epoch} rollouts!")
+        for i in range(self.args.games_per_epoch):
+            time.sleep(3)
+            rewards = self.collect_rollout()
+            r_list.append(rewards)
+            logging.info(f"Rollout {i+1} rewards: {rewards}")
+        self.ep_return = sum(r_list) / len(r_list)
+        logging.info(f"Finished collecting {self.args.games_per_epoch} rollouts!")
+
+    def collect_rollout(self, train=True, sample=True):
         # start env and collect trajectory in buffer
-        blue_side = random.random()>0.5
+        # blue_side = random.random()>0.5
+        blue_side = False
         game_start_time = self.interface.start_custom_game(blue_side)
         self.agent.predefined_start(game_start_time)
         self.agent.collect_trajectory(
             game_start_time,
             self.buffer,
             self.device,
-            train=train
+            train=train,
+            sample=sample
             )
         self.interface.end_custom_game()
         if train:
@@ -84,6 +93,7 @@ class AgentLightning(L.LightningModule):
             # compute returns and advantages
             self.buffer.compute_advantages_and_returns()
             return rewards
+        return None
 
     def train_dataloader(self):
         return DataLoader(
@@ -92,21 +102,34 @@ class AgentLightning(L.LightningModule):
             shuffle=True
         )
 
+    def on_train_batch_start(self, batch, batch_idx):
+        assert self.policy.net.training is False, "Expected backbone to be in eval()"
+        assert self.policy.net.fc.training is True, "Expected head (fc) to be in train()"
+
     def training_step(self, batch, batch_idx):
-        loss, policy_loss, value_loss, entropy, returns = ppo_loss(
+        # loss, policy_loss, value_loss, entropy, returns = ppo_loss(
+        #     self,
+        #     batch,
+        #     self.actions,
+        #     self.actions_specs
+        #     )
+        loss, policy_loss, value_loss, entropy, returns = discrete_ppo_loss(
             self,
             batch,
-            self.actions,
-            self.actions_specs
             )
         self.log_dict(
         {
             "policy_loss": policy_loss,
             "value_loss": value_loss,
-            "entropy": entropy
+            "entropy": entropy,
+            "episode_return": self.ep_return
         },
         prog_bar=True
         )
+        if torch.cuda.is_available():
+            self.log("gpu/mem_alloc_mb",
+                     torch.cuda.memory_allocated() / 1024**2,
+                     prog_bar=True)
         return loss
     
     def test_dataloader(self):
@@ -114,7 +137,7 @@ class AgentLightning(L.LightningModule):
 
     def test_step(self, batch, batch_idx):
         pass
-    
+
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.args.lr)
         return optimizer
