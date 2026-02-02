@@ -14,7 +14,7 @@ def view_template_matching(game, template_path):
             mid_box,
             big_box
             )
-        print(x_c, y_c)
+        # print(x_c, y_c)
         cv2.drawContours(minimap, [mid_box.astype(int)], 0, (0, 255, 0), 2)
         cv2.drawContours(minimap, [big_box.astype(int)], 0, (0, 255, 0), 2)
         

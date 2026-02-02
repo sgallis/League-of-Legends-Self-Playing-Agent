@@ -14,7 +14,6 @@ from utils.callbacks import RolloutValidationCallback, RolloutTestCallback
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--monitor_idx", type=int, default=1)
     parser.add_argument('--train', action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
     args.game_res = (720, 1280)
@@ -62,6 +61,9 @@ if __name__ == "__main__":
     backbone = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
     model = AgentLightning(backbone, args)
 
+    from utils.visualize import view_template_matching
+    view_template_matching(model.game, "assets/MissFortune_map.png")
+
     if args.train:
         trainer = L.Trainer(
             accelerator="gpu",
@@ -89,7 +91,7 @@ if __name__ == "__main__":
                 RolloutTestCallback(
                     n_episodes=1,
                     compute_rewards=True,
-                    sample=False,
+                    sample=True,
                     )],
             logger=False
         )

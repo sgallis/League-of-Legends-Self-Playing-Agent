@@ -8,6 +8,8 @@ from torch import optim
 from torch.utils.data import DataLoader
 import lightning as L
 
+from utils.utils import find_league_monitor
+
 from game.game import Game
 from game.client import Client
 
@@ -25,7 +27,7 @@ class AgentLightning(L.LightningModule):
         self.args = args
         
         sct = mss.mss()
-        monitor = sct.monitors[args.monitor_idx]
+        monitor = find_league_monitor(sct.monitors)
 
         self.actions = ["nothing", "move_click"]
         # self.actions = ["move_click"]

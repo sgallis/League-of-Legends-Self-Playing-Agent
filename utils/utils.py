@@ -21,6 +21,12 @@ def unsquash(x, eps=1e-6):
 
 def mouse_id_to_grid_id(m_id, m_pos):
     divide = m_pos[1]
-    grid_x = m_id % m_pos[1] 
-    grid_y = m_id // m_pos[1]
+    grid_x = m_id % divide 
+    grid_y = m_id // divide
     return grid_x, grid_y
+
+def find_league_monitor(monitors):
+    for m in monitors:
+        if m["left"] == 0 and m["top"] == 0:
+            return m
+    raise NotImplementedError
