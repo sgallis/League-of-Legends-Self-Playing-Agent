@@ -3,7 +3,7 @@ from pynput.mouse import Button
 from pynput.keyboard import Key
 import time
 
-from utils.screen import get_offsets, get_monitor_res, get_raw_offsets
+from utils.frame import get_offsets, get_monitor_res, get_raw_offsets
 
 class Controller:
     def __init__(self, monitor, window_res=(720, 1280)):

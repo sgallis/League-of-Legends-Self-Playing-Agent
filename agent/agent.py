@@ -1,6 +1,8 @@
 import random
 import time
 import logging
+import cv2
+import keyboard
 import torch
 
 from utils.utils import mouse_id_to_grid_id
@@ -47,8 +49,8 @@ class Agent:
         time.sleep(shop_delay)
         # click shop search
         self.agent_controller.left_click(
-            (827 - self.agent_controller.w_offset) / self.game_res[1],
-            (348 - self.agent_controller.h_offset) / self.game_res[0]
+            (700 - self.agent_controller.w_offset) / self.game_res[1],
+            (240 - self.agent_controller.h_offset) / self.game_res[0]
         )
         time.sleep(shop_delay)
         # search for item
@@ -56,8 +58,8 @@ class Agent:
         time.sleep(shop_delay)
         # buy item
         self.agent_controller.left_click(
-            (700 - self.agent_controller.w_offset) / self.game_res[1],
-            (400 - self.agent_controller.h_offset) / self.game_res[0]
+            (512 - self.agent_controller.w_offset) / self.game_res[1],
+            (326 - self.agent_controller.h_offset) / self.game_res[0]
         )
         time.sleep(shop_delay)
         # self.agent_controller.right_click(
@@ -65,13 +67,17 @@ class Agent:
         #     (457 - self.agent_controller.h_offset) / self.game_res[0],
         # )
         self.agent_controller.left_click(
-            (1196- self.agent_controller.w_offset) / self.game_res[1],
-            (580 - self.agent_controller.h_offset) / self.game_res[0]
+            (1300- self.agent_controller.w_offset) / self.game_res[1],
+            (600 - self.agent_controller.h_offset) / self.game_res[0]
         )
         time.sleep(shop_delay)
+        # self.agent_controller.left_click(
+        #     (1196- self.agent_controller.w_offset) / self.game_res[1],
+        #     (580 - self.agent_controller.h_offset) / self.game_res[0]
+        # )
         self.agent_controller.left_click(
-            (1196- self.agent_controller.w_offset) / self.game_res[1],
-            (580 - self.agent_controller.h_offset) / self.game_res[0]
+            (1300- self.agent_controller.w_offset) / self.game_res[1],
+            (600 - self.agent_controller.h_offset) / self.game_res[0]
         )
         # exit shop
         self.agent_controller.press_release("p")
@@ -94,21 +100,24 @@ class Agent:
                 self.act(
                     buffer,
                     device, 
-                    img_shape=self.args.img_shape,
                     train=train,
                     sample=sample
                     )
+                if keyboard.is_pressed(self.args.stop_key):
+                    print("Stopping...")
+                    exit()
                 time.sleep(self.args.action_delay)
 
-    def act(self, buffer, device, img_shape=(256, 256), train=True, sample=True):
-        # rgb array to tensor (h, w, 3) -> (3, h, w)
-        img = torch.tensor(self.game.capture_frame(shape=img_shape) / 255.0).float().permute(2, 0, 1)
+    def act(self, buffer, device, train=True, sample=True):
+        game_data, images = self.game.get_game_data()
+        
+        img = images["game"] # (h, w, 3) img_shape
+        img = torch.tensor(img / 255.0).float().permute(2, 0, 1) # (h, w, 3) -> (3, h, w)
         # ImageNet normalization
         mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
         std  = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
         img = (img - mean) / std
-
-        minimap = self.game.capture_minimap()
+        
         img_b = img.unsqueeze(0).to(device) # add batch dimension (3, h, w) -> (1, 3, h, w)
         value, action, logp = self.policy.sample_action(img_b) if sample else self.policy.take_best_action(img_b)
         # logging.info(f"{action[0]}, {action[1:]}, {logp}")
@@ -120,9 +129,9 @@ class Agent:
         
         if train:
             # reward = reward_model.get_reward()
-            game_data = self.game.get_live_game_data()
+            game_data, images = self.game.get_game_data()
             buffer.add(
-                (img, minimap),
+                img,
                 game_data,
                 action,
                 0,

@@ -36,7 +36,7 @@ class AgentLightning(L.LightningModule):
         self.n_m_pos = self.m_pos[0] * self.m_pos[1]
 
         self.client = Client(monitor, client_res=args.client_res)
-        self.game = Game(sct, monitor, game_res=args.game_res)
+        self.game = Game(sct, monitor, args, game_res=args.game_res)
         self.interface = Interface(self.client, self.game, args)
 
         self.policy = DiscretePolicy(self.actions, self.n_m_pos, backbone)

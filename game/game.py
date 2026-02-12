@@ -6,10 +6,13 @@ import cv2
 from pynput.keyboard import Key
 
 from utils.controller import Controller
-from utils.screen import Frame
+from utils.frame import Frame
+from utils.variables import mid_box, big_box
+from utils.template import health_estimate, gold_template_matching,\
+    time_template_matching, level_template_matching, minimap_template_matching
 
 class Game:
-    def __init__(self, sct, game_monitor, game_res=(720, 1280)):
+    def __init__(self, sct, game_monitor, args, game_res=(720, 1280)):
         self.game_controller = Controller(
             game_monitor,
             window_res=game_res
@@ -17,7 +20,7 @@ class Game:
 
         self.base_url = "https://127.0.0.1:2999/liveclientdata/"
 
-        self.frame = Frame(sct, game_monitor, frame_res=game_res)
+        self.frame = Frame(sct, game_monitor, args, frame_res=game_res)
         self.load_flag = False
         self.start_flag = True
     
@@ -26,6 +29,9 @@ class Game:
     
     def capture_minimap(self, shape=None, save=""):
         return self.frame.capture_minimap(shape=shape, save=save)
+
+    def capture_gold(self, shape=None, save=""):
+        return self.frame.capture_gold(shape=shape, save=save)
 
     def enter_game(self):
         time.sleep(2)
@@ -36,13 +42,13 @@ class Game:
         self.game_controller.press_release(Key.esc)
         time.sleep(0.5)
         self.game_controller.left_click(
-            (734 - self.game_controller.w_offset) / self.game_controller.game_res[1],
-            (742 - self.game_controller.h_offset) / self.game_controller.game_res[0]
+            (616 - self.game_controller.w_offset) / self.game_controller.game_res[1],
+            (845 - self.game_controller.h_offset) / self.game_controller.game_res[0]
         )
         time.sleep(1)
         self.game_controller.left_click(
-            (880 - self.game_controller.w_offset) / self.game_controller.game_res[1],
-            (500 - self.game_controller.h_offset) / self.game_controller.game_res[0]
+            (831 - self.game_controller.w_offset) / self.game_controller.game_res[1],
+            (484 - self.game_controller.h_offset) / self.game_controller.game_res[0]
         )
         if verbose:
             logging.info("Left the game!")
@@ -82,6 +88,53 @@ class Game:
     
     def get_game_time(self, verbose=False):
         return self.get_live_game_data(endpoint="gamestats", verbose=verbose)["gameTime"]
+
+    def get_game_data(self):
+        game_frame = self.frame.capture_game_frame()
+        images = self.frame.process_game_frame(game_frame)
+
+        game_data = dict()
+        game_data["activePlayer"] = dict()
+
+        # minimap
+        _, inside, inside_big, x_c, y_c = minimap_template_matching(
+            images["minimap"],
+            self.frame.champion_template,
+            (self.frame.champion_template_w, self.frame.champion_template_h),
+            mid_box,
+            big_box
+        )
+        game_data["activePlayer"]["position"] = (x_c, y_c)
+        game_data["activePlayer"]["inside"] = inside
+        game_data["activePlayer"]["insideBig"] = inside_big
+
+        # gold
+        game_data["activePlayer"]["gold"] = gold_template_matching(
+            images["gold"],
+            self.frame.gold_template,
+            min_score=0.7
+        )
+
+        # level
+        game_data["activePlayer"]["level"] = level_template_matching(
+            images["level"],
+            self.frame.level_template,
+            min_score=0.75
+        )
+
+        # health
+        game_data["activePlayer"]["health"] = health_estimate(
+            images["health"]
+        )
+
+        # time
+        game_data["game"] = dict()
+        game_data["game"]["time"] = time_template_matching(
+            images["time"],
+            self.frame.time_template,
+            min_score=0.7
+        )
+        return game_data, images
 
     def get_live_game_data(self, endpoint="allgamedata", verbose=False):
         url = self.base_url + endpoint
@@ -123,4 +176,4 @@ if __name__ == "__main__":
     game = Game(sct, monitor)
     game.wait_game_start()
     print(game.get_game_time())
-    game.capture_frame("test.png")
+    game.frame.capture_frame("test.png")

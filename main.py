@@ -3,6 +3,7 @@ import pynput
 import time
 import random
 import logging
+import keyboard
 
 import torch
 from torchvision.models import resnet18, ResNet18_Weights
@@ -16,14 +17,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--train', action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
-    args.game_res = (720, 1280)
+    # args.game_res = (720, 1280)
+    args.game_res = (1080, 1920)
     args.client_res = (576, 1024)
     args.password = "e2h8nef87*"
     args.verbose = False
     args.shop_delay = 0.15
     # args.device = "cuda"
     args.img_shape=(224, 224)
-    args.action_delay = 0
+    args.action_delay = 0.2
     args.minions_time = 50
     # args.game_end_time = 30
     args.game_end_time = 300
@@ -36,10 +38,15 @@ if __name__ == "__main__":
 
     args.template_threshold = 0.6
     args.template_path = "assets/MissFortune_map.png"
+    args.level_template_path = "assets/level_digits"
+    args.time_template_path = "assets/time_digits"
+    args.gold_template_path = "assets/gold_digits"
     args.r_gold = 0.01
     args.r_dead = 0.01
     args.r_level = 0.01
     args.r_pos = 0.01
+
+    args.stop_key = "l"
 
     logging.basicConfig(
     level=logging.INFO,  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
@@ -60,9 +67,28 @@ if __name__ == "__main__":
 
     backbone = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
     model = AgentLightning(backbone, args)
+    
+    # from utils.visualize import view_game_state
+    # view_game_state(model.game, args.stop_key)
+    # model.game.frame.capture_health(save="test/health_capture_dead.png")
+    # model.reward_model.clear()
+    # while True:
+    #     game_data, images = model.game.get_game_data()
+    #     # reward = model.reward_model.get_reward(game_data)
+    #     # print(reward)
+    #     model.buffer.add(images["game"], game_data, 0, 0, 0, 0)
+    #     if keyboard.is_pressed(args.stop_key):
+    #         print("Stopping...")
+    #         break
+    #     time.sleep(1)
+    # buffer_rewards = model.buffer.compute_rewards(model.reward_model)
+    # print(buffer_rewards)
+    # exit()
 
-    from utils.visualize import view_template_matching
-    view_template_matching(model.game, "assets/MissFortune_map.png")
+    # mouse = pynput.mouse.Controller()
+    # while True:
+    #     print(mouse.position)
+    #     time.sleep(2)
 
     if args.train:
         trainer = L.Trainer(
@@ -99,8 +125,3 @@ if __name__ == "__main__":
             model,
             ckpt_path="lightning_logs/version_14/checkpoints/best-epoch=032-episode_return=-1.25.ckpt",
             )
-
-    # mouse = pynput.mouse.Controller()
-    # while True:
-    #     print(mouse.position)
-    #     time.sleep(2)
